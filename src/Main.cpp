@@ -1,16 +1,12 @@
 #include "mongoose.h"
+
+#include <cstddef>
 #include <cstdlib>
-#include <string>
 #include <iostream>
+#include <string>
 
 static const char *json = "{\"message\":\"hey\"}";
 static const char *defaultPort = "8080";
-static int s_sig_num = 0;
-
-static void signal_handler(int sig_num) {
-  signal(sig_num, signal_handler);
-  s_sig_num = sig_num;
-}
 
 static void ev_handler(struct mg_connection *conn, int ev, void *ev_data) {
   if (ev == MG_EV_HTTP_REQUEST) {
@@ -20,33 +16,31 @@ static void ev_handler(struct mg_connection *conn, int ev, void *ev_data) {
   }
 }
 
-static const char * getPort() {
-  char * portFromEnv = std::getenv("PORT");
-
-  if (portFromEnv == NULL) {
+static const char* getPort() {
+  char *portFromEnv = std::getenv("PORT");
+  if (portFromEnv == nullptr) {
     return std::string("8080").c_str();
-  } else {
-    return portFromEnv;
   }
+  return portFromEnv;
 }
 
 int startServer() {
   struct mg_mgr mgr;
   struct mg_connection *conn;
-  mg_mgr_init(&mgr, NULL);
+  mg_mgr_init(&mgr, nullptr);
 
   const char *port = getPort();
   conn = mg_bind(&mgr, port, ev_handler);
 
-  if (conn == NULL) {
+  if (conn == nullptr) {
     std::cout << "failed to start server" << std::endl;
     return 1;
   }
 
-  mg_set_protocol_http_websocket(conn);
   std::cout << "started server on port " << port << std::endl;
+  mg_set_protocol_http_websocket(conn);
 
-  while (s_sig_num == 0) {
+  while (1) {
     mg_mgr_poll(&mgr, 50);
   }
 
@@ -55,9 +49,6 @@ int startServer() {
 }
 
 int main() {
-  signal(SIGINT, signal_handler);
-  signal(SIGTERM, signal_handler);
-
   startServer();
   return 0;
 }
